@@ -1,0 +1,103 @@
+# Continuous integration: host unit tests + firmware build.
+#
+# Cost: uses only standard GitHub-hosted Linux runners (ubuntu-latest), which
+# are free with unlimited minutes for public repositories. No larger runners,
+# self-hosted runners or paid services. Caches and artifacts stay well inside
+# the free allowance (SDK cache ~200 MB; .uf2 artifact <1 MB, kept 14 days).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch/PR cancels the run in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PICO_SDK_VERSION: 2.3.1
+
+jobs:
+  unit-tests:
+    name: Unit tests (host)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: >
+          cmake -S tests -B tests/build
+          -DCMAKE_BUILD_TYPE=Debug
+          "-DCMAKE_C_FLAGS=-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer"
+
+      - name: Build
+        run: cmake --build tests/build
+
+      - name: Run
+        run: ctest --test-dir tests/build --output-on-failure
+
+  firmware:
+    name: Firmware (${{ matrix.build_type }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # Release is what gets flashed; Debug also compiles the assert paths.
+        build_type: [Release, Debug]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib \
+            ninja-build libusb-1.0-0-dev pkg-config
+
+      - name: Cache Pico SDK
+        id: cache-sdk
+        uses: actions/cache@v4
+        with:
+          path: ~/pico-sdk
+          key: pico-sdk-${{ env.PICO_SDK_VERSION }}-v1
+
+      - name: Fetch Pico SDK
+        if: steps.cache-sdk.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch "$PICO_SDK_VERSION" https://github.com/raspberrypi/pico-sdk.git ~/pico-sdk
+          # Only the submodules this project uses (BTstack, CYW43 driver, TinyUSB for USB serial).
+          git -C ~/pico-sdk submodule update --init --depth 1 lib/btstack lib/cyw43-driver lib/tinyusb
+
+      - name: Configure
+        run: >
+          cmake -S WavePicoDongle -B WavePicoDongle/build -G Ninja
+          -DPICO_SDK_PATH=$HOME/pico-sdk
+          -DPICO_BOARD=pico2_w
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DWAVE_STRICT_WARNINGS=ON
+
+      - name: Build
+        run: cmake --build WavePicoDongle/build
+
+      - name: Check output
+        run: |
+          test -s WavePicoDongle/build/WavePicoDongle.uf2
+          arm-none-eabi-size WavePicoDongle/build/WavePicoDongle.elf
+
+      - name: Upload firmware
+        if: matrix.build_type == 'Release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: WavePicoDongle-uf2
+          path: WavePicoDongle/build/WavePicoDongle.uf2
+          retention-days: 14
+          if-no-files-found: error

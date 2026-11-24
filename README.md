@@ -1,5 +1,7 @@
 # WavePicoDongle
 
+[![CI](https://github.com/sphere300/WavePicoDonglePimoroni/actions/workflows/ci.yml/badge.svg)](https://github.com/sphere300/WavePicoDonglePimoroni/actions/workflows/ci.yml)
+
 A Bluetooth audio receiver built from a Raspberry Pi Pico 2 W and a Pimoroni Pico Audio Pack.
 Pair a phone or computer with it and it plays the audio through the Audio Pack's line out and headphone jacks.
 Five optional push buttons control playback and volume.
@@ -87,6 +89,29 @@ cmake -S . -B build -G Ninja -DPICO_BOARD=pico2_w
 cmake --build build
 ```
 
+Add `-DWAVE_STRICT_WARNINGS=ON` to treat warnings in the project's own sources as errors, as CI does.
+
+### Tests
+
+Host-side unit tests for the button logic (debounce, hold, auto-repeat, enable/disable) run on a PC, with no Pico needed. `buttons.c` is compiled unchanged against stub GPIO and timer headers in [tests/stubs](tests/stubs).
+
+```sh
+cmake -S tests -B tests/build
+cmake --build tests/build
+ctest --test-dir tests/build --output-on-failure
+```
+
+This needs a host C compiler (gcc or clang).
+
+### Continuous integration
+
+[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on every push to `main` and on every pull request:
+
+- **Unit tests:** built with AddressSanitizer and UndefinedBehaviorSanitizer.
+- **Firmware build:** compiled in Release and Debug against Pico SDK 2.3.1, with strict warnings on. The Release `.uf2` is uploaded as a build artifact, kept for 14 days.
+
+It uses only standard GitHub-hosted Linux runners, which are free for public repositories.
+
 ### Flashing
 
 Hold **BOOTSEL** while plugging in the Pico, then copy `WavePicoDongle/build/WavePicoDongle.uf2` to the `RP2350` drive that appears.
@@ -131,6 +156,8 @@ WavePicoDongle/        Firmware project
   buttons.c/h            Debounced media-button polling
   btstack_config.h       BTstack configuration
   CMakeLists.txt
+tests/                 Host unit tests (test_buttons.c) and stub headers
+.github/workflows/     GitHub Actions CI
 LICENSE                MIT licence, with the list of files under other licences
 ```
 

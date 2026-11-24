@@ -44,6 +44,18 @@ add_executable(WavePicoDongle
 
 pico_generate_pio_header(WavePicoDongle ${CMAKE_CURRENT_LIST_DIR}/audio_i2s.pio)
 
+# Strict warnings for this project's own sources only (SDK/BTstack sources are
+# compiled into the same target and are not held to this). Enabled in CI.
+option(WAVE_STRICT_WARNINGS "Treat warnings in WavePicoDongle's own sources as errors" OFF)
+if (WAVE_STRICT_WARNINGS)
+    set_source_files_properties(
+            WavePicoDongle.c
+            audio_receiver.c
+            btstack_audio_i2s.c
+            buttons.c
+            PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Werror")
+endif()
+
 pico_set_program_name(WavePicoDongle "WavePicoDongle")
 pico_set_program_version(WavePicoDongle "0.1")
 
