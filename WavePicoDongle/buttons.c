@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Sphere300
+
 /*
  * Debounced polling of the media buttons.
  *

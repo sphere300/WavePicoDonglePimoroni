@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Sphere300
+
 #ifndef BTSTACK_AUDIO_I2S_H
 #define BTSTACK_AUDIO_I2S_H
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Sphere300
+
 #ifndef BUTTONS_H
 #define BUTTONS_H
 

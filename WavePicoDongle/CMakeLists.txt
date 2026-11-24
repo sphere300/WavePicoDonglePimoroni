@@ -37,6 +37,7 @@ pico_sdk_init()
 
 add_executable(WavePicoDongle
         WavePicoDongle.c
+        audio_receiver.c
         btstack_audio_i2s.c
         buttons.c
         )

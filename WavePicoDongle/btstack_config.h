@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MIT AND BSD-3-Clause
+// Copyright (c) 2026 Sphere300
+// Portions Copyright (c) 2020 Raspberry Pi (Trading) Ltd.: several settings
+// follow pico-examples' pico_w/bt/config/btstack_config_common.h (BSD-3-Clause).
+
 // BTstack configuration for WavePicoDongle (Pico 2 W, Bluetooth Classic A2DP sink).
 #ifndef BTSTACK_CONFIG_H
 #define BTSTACK_CONFIG_H

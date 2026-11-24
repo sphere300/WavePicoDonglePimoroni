@@ -1,6 +1,10 @@
 ;
+; Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
+;
+; SPDX-License-Identifier: BSD-3-Clause
+;
 ; I2S output, 16-bit stereo (32 BCK cycles per frame).
-; Same program as pico-extras' pico_audio_i2s.
+; Same program as pico-extras' pico_audio_i2s (src/rp2_common/pico_audio_i2s/audio_i2s.pio).
 ;
 ; OUT pin      : DIN
 ; side-set bit0: BCK

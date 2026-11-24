@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Sphere300
+
 /*
  * BTstack audio sink for the Pico, driving an I2S DAC (PCM5100A on the
  * Pimoroni Pico Audio Pack) through PIO + DMA.

@@ -101,10 +101,10 @@ Phone ──A2DP (SBC)──▶ L2CAP media packets ──▶ SBC frame ring buf
              I2S DAC ◀── PIO ◀── DMA ◀── buffers ◀── resampler (drift correction)
 ```
 
-- **Audio path** ([WavePicoDongle.c](WavePicoDongle/WavePicoDongle.c)): incoming SBC frames are queued in a ring buffer. When the I2S driver needs samples, frames are decoded and passed through a resampler that nudges the playback rate up or down slightly. This keeps the buffer level steady despite clock drift between the phone and the Pico. Playback begins once about 60 frames are buffered.
+- **Audio path** ([audio_receiver.c](WavePicoDongle/audio_receiver.c)): incoming SBC frames are queued in a ring buffer. When the I2S driver needs samples, frames are decoded and passed through a resampler that nudges the playback rate up or down slightly. This keeps the buffer level steady despite clock drift between the phone and the Pico. Playback begins once about 60 frames are buffered.
 - **I2S driver** ([btstack_audio_i2s.c](WavePicoDongle/btstack_audio_i2s.c)): a PIO state machine generates I2S, fed by two DMA channels chained to each other, so buffers switch with no gap. Buffers are refilled on the BTstack thread, never inside the interrupt. If no audio buffer is ready, the DMA plays a silence buffer instead, so the stream never stops.
 - **Volume**: AVRCP absolute volume (0–127) is turned into a gain with a square-law curve and applied to the samples in software. The PCM5100A has no hardware gain control.
-- **Pairing** (`hci_packet_handler`): pairing requests are accepted only while the pairing window is open. Legacy PIN pairing is always refused.
+- **Pairing** (`gap_event_handler` in [WavePicoDongle.c](WavePicoDongle/WavePicoDongle.c)): pairing requests are accepted only while the pairing window is open. Legacy PIN pairing is always refused.
 - **Buttons** ([buttons.c](WavePicoDongle/buttons.c)): a BTstack timer polls the pins every 5 ms. A change is accepted after 4 matching samples (20 ms debounce). The module reports press, hold, repeat and release events to `handle_button()`, which sends AVRCP commands or changes the volume.
 
 ## Noise fixes
@@ -124,13 +124,31 @@ If some noise remains, the causes are physical:
 
 ```
 WavePicoDongle/        Firmware project
-  WavePicoDongle.c       Bluetooth setup, A2DP/AVRCP handling, pairing window, button actions
+  WavePicoDongle.c       GAP setup, pairing window, button actions, LED, main()
+  audio_receiver.c/h     A2DP sink + AVRCP: audio pipeline, volume, play status (.c is BTstack-licensed)
   btstack_audio_i2s.c/h  PIO + DMA I2S audio sink for the PCM5100A
   audio_i2s.pio          PIO program generating I2S
   buttons.c/h            Debounced media-button polling
   btstack_config.h       BTstack configuration
   CMakeLists.txt
+LICENSE                MIT licence, with the list of files under other licences
+```
+
+## License
+
+This project is under the [MIT licence](LICENSE), **except** for these files, which keep the licence in their own headers:
+
+| File | Licence |
+|---|---|
+| [audio_receiver.c](WavePicoDongle/audio_receiver.c) | BTstack licence, Copyright (C) 2023 BlueKitchen GmbH. Derived from BTstack's `example/a2dp_sink_demo.c`. BSD-style, but **non-commercial only**. |
+| [audio_i2s.pio](WavePicoDongle/audio_i2s.pio), [pico_sdk_import.cmake](WavePicoDongle/pico_sdk_import.cmake) | BSD-3-Clause, Copyright (c) 2020 Raspberry Pi (Trading) Ltd. |
+| [btstack_config.h](WavePicoDongle/btstack_config.h) | MIT, with portions under BSD-3-Clause from Raspberry Pi's pico-examples |
+
+The firmware is built on [BTstack](https://github.com/bluekitchen/btstack) (Copyright (C) 2009 BlueKitchen GmbH) and the Raspberry Pi Pico SDK. Any built `.uf2` includes BTstack and is subject to its licence:
+
+- **Personal, non-commercial use** is allowed under BTstack's own licence.
+- **Commercial use** is allowed only on Raspberry Pi Pico W / Pico 2 W hardware, under Raspberry Pi's BTstack licence (`pico-sdk/src/rp2_common/pico_btstack/LICENSE.RP`), or with a commercial licence from BlueKitchen GmbH.
 
 ## Acknowledgements
 
-The audio pipeline is based on BTstack's `example/a2dp_sink_demo.c` by BlueKitchen GmbH.
+The audio pipeline in `audio_receiver.c` is based on BTstack's `example/a2dp_sink_demo.c` by BlueKitchen GmbH.
